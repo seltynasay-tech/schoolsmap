@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учебные материалы</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --green-dark: #2d5016;
+            --green-mid: #4a7c2e;
+            --green-soft: #a8c686;
+            --green-light: #e8f0dd;
+            --beige: #f5f1e8;
+            --beige-dark: #e8e0d0;
+            --brown: #6b5d4a;
+            --white: #fefdf9;
+            --shadow: 0 2px 12px rgba(45, 80, 22, 0.12);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: var(--beige);
+            color: var(--green-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+            color: var(--white);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        header h1 { font-size: 1.6rem; font-weight: 600; }
+        header p { font-size: 0.9rem; opacity: 0.9; margin-top: 0.3rem; }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-card {
+            background: var(--white);
+            border: 1px solid var(--beige-dark);
+            border-left: 5px solid var(--green-mid);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .file-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+            background: var(--green-light);
+            border-left-color: var(--green-dark);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .file-text h2 {
+            font-size: 1.05rem;
+            color: var(--green-dark);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .file-text p {
+            font-size: 0.85rem;
+            color: var(--brown);
+            opacity: 0.85;
+        }
+
+        .file-arrow {
+            font-size: 1.2rem;
+            color: var(--green-mid);
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+
+        .file-card:hover .file-arrow {
+            opacity: 1;
+            transform: translateX(3px);
+        }
+
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.3rem; }
+            .file-card { padding: 12px 16px; gap: 12px; }
+            .file-icon { font-size: 1.6rem; }
+            .file-text h2 { font-size: 0.95rem; }
+            .file-text p { font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📚 Учебные материалы</h1>
+        <p>Нажмите на документ, чтобы открыть его</p>
+    </header>
+
+    <div class="container">
+        <div class="file-list" id="fileList">
+            <!-- Список файлов генерируется скриптом -->
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // ВАШИ ФАЙЛЫ
+        // ============================================================
+        const files = [
+            { name: "Английский язык 10 кл.pdf", title: "Английский язык (10 класс)" },
+            { name: "Английский язык.pdf", title: "Английский язык" },
+            { name: "Биология 5-6 кл.pdf", title: "Биология (5-6 класс)" },
+            { name: "Биология и география 10-11 кл.pdf", title: "Биология и география (10-11 класс)" },
+            { name: "География 7-8 кл.pdf", title: "География (7-8 класс)" },
+            { name: "Геометрия 8 кл.pdf", title: "Геометрия (8 класс)" },
+            { name: "История 5 кл.pdf", title: "История (5 класс)" },
+            { name: "Родной язык 6 кл.pdf", title: "Родной язык (6 класс)" },
+            { name: "Родной язык 8 кл.pdf", title: "Родной язык (8 класс)" }
+        ];
+
+        // ============================================================
+        // ОТРИСОВКА СПИСКА
+        // ============================================================
+        const listEl = document.getElementById('fileList');
+
+        if (files.length === 0) {
+            listEl.innerHTML = '<p style="text-align:center; color:#888;">Файлы пока не добавлены.</p>';
+        } else {
+            files.forEach(file => {
+                const a = document.createElement('a');
+                
+                // Автоматически кодируем пробелы и русские буквы для ссылки
+                a.href = encodeURIComponent(file.name); 
+                a.target = "_blank"; // Открывать в новой вкладке
+                a.className = 'file-card';
+
+                a.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-icon">📄</div>
+                        <div class="file-text">
+                            <h2>${file.title}</h2>
+                            <p>PDF документ</p>
+                        </div>
+                    </div>
+                    <div class="file-arrow">➔</div>
+                `;
+
+                listEl.appendChild(a);
+            });
+        }
+    </script>
+</body>
+</html>
