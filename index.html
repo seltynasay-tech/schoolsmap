@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Банк заданий</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Школы Дюртюлинского района</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -11,72 +12,295 @@
             --green-light: #e8f0dd; --beige: #f5f1e8; --beige-dark: #e8e0d0;
             --brown: #6b5d4a; --white: #fefdf9; --shadow: 0 2px 12px rgba(45, 80, 22, 0.12);
         }
-        body { font-family: 'Segoe UI', Roboto, system-ui, sans-serif; background: var(--beige); color: var(--green-dark); min-height: 100vh; display: flex; flex-direction: column; }
-        header { background: linear-gradient(135deg, var(--green-dark), var(--green-mid)); color: var(--white); padding: 1.5rem; text-align: center; box-shadow: var(--shadow); }
-        header h1 { font-size: 1.6rem; font-weight: 600; }
-        header p { font-size: 0.9rem; opacity: 0.9; margin-top: 0.3rem; }
-        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; width: 100%; flex: 1; }
-        .file-list { display: flex; flex-direction: column; gap: 12px; }
-        .file-card { background: var(--white); border: 1px solid var(--beige-dark); border-left: 5px solid var(--green-mid); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-decoration: none; color: inherit; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .file-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); background: var(--green-light); border-left-color: var(--green-dark); }
-        .file-info { display: flex; align-items: center; gap: 16px; flex: 1; }
-        .file-icon { font-size: 2rem; flex-shrink: 0; }
-        .file-text h2 { font-size: 1.05rem; color: var(--green-dark); margin-bottom: 4px; font-weight: 600; }
-        .file-text p { font-size: 0.85rem; color: var(--brown); opacity: 0.85; }
-        .file-arrow { font-size: 1.2rem; color: var(--green-mid); opacity: 0.5; transition: opacity 0.2s; }
-        .file-card:hover .file-arrow { opacity: 1; transform: translateX(3px); }
-        @media (max-width: 600px) {
-            header h1 { font-size: 1.3rem; }
-            .file-card { padding: 12px 16px; gap: 12px; }
-            .file-icon { font-size: 1.6rem; }
-            .file-text h2 { font-size: 0.95rem; }
-            .file-text p { font-size: 0.78rem; }
+        body { font-family: 'Segoe UI', Roboto, system-ui, sans-serif; background: var(--beige); color: var(--green-dark); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: linear-gradient(135deg, var(--green-dark), var(--green-mid)); color: var(--white); padding: 1rem 1.5rem; text-align: center; box-shadow: var(--shadow); z-index: 1000; flex-shrink: 0; }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        header p { font-size: 0.82rem; opacity: 0.9; margin-top: 0.2rem; }
+        .main { flex: 1; display: flex; overflow: hidden; position: relative; }
+        
+        /* Боковая панель */
+        .sidebar { width: 340px; background: var(--white); display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(45, 80, 22, 0.08); z-index: 500; flex-shrink: 0; transition: transform 0.3s ease; }
+        .search-box { padding: 14px; background: var(--green-light); border-bottom: 1px solid var(--beige-dark); }
+        .search-box input { width: 100%; padding: 10px 14px 10px 38px; border: 2px solid var(--beige-dark); border-radius: 24px; font-size: 14px; background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%234a7c2e' stroke-width='2.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px center; background-size: 18px; color: var(--green-dark); outline: none; transition: border-color 0.2s; }
+        .search-box input:focus { border-color: var(--green-mid); box-shadow: 0 0 0 3px rgba(74, 124, 46, 0.15); }
+        .school-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .school-item { padding: 12px 14px; margin-bottom: 6px; background: var(--white); border: 1px solid var(--beige-dark); border-left: 4px solid var(--green-soft); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+        .school-item:hover { background: var(--green-light); border-left-color: var(--green-mid); transform: translateX(3px); box-shadow: var(--shadow); }
+        .school-item.active { background: var(--green-light); border-left-color: var(--green-dark); box-shadow: var(--shadow); }
+        .school-item .item-name { font-weight: 600; font-size: 0.88rem; color: var(--green-dark); margin-bottom: 3px; }
+        .school-item .item-address { font-size: 0.76rem; color: var(--brown); opacity: 0.85; }
+        .school-item .item-badges { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .school-item .badge { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+        .badge-hundred { background: #fff3cd; color: #856404; }
+        .badge-olymp { background: #d4edda; color: #155724; }
+        .no-results { padding: 30px; text-align: center; color: var(--brown); font-style: italic; font-size: 0.9rem; }
+        
+        /* Карта и маркеры */
+        #map { flex: 1; background: #d4e1ec; }
+        .custom-marker { display: flex; align-items: center; justify-content: center; background: var(--green-mid); width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2.5px solid var(--white); box-shadow: 0 3px 8px rgba(45, 80, 22, 0.35); transition: transform 0.15s; }
+        .custom-marker span { transform: rotate(45deg); color: white; font-size: 15px; }
+        .leaflet-marker-icon:hover .custom-marker { background: var(--green-dark); transform: rotate(-45deg) scale(1.15); }
+        
+        /* Всплывающее окно (Popup) */
+        .leaflet-popup-content { font-size: 14px; line-height: 1.45; min-width: 280px; max-width: 340px; padding: 4px 0; }
+        .leaflet-popup-content h3 { margin: 0 0 6px 0; color: var(--green-dark); font-size: 1.05rem; border-bottom: 2px solid var(--green-mid); padding-bottom: 5px; }
+        .leaflet-popup-content .school-address { color: var(--brown); font-size: 0.85rem; margin-bottom: 6px; }
+        .leaflet-popup-content .section-label { font-weight: 700; color: var(--green-dark); margin-top: 10px; margin-bottom: 4px; font-size: 0.85rem; text-transform: uppercase; }
+        .leaflet-popup-content .hundred-scorer { background: #fffbf0; border-left: 4px solid #f1c40f; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; }
+        .leaflet-popup-content .hundred-scorer .fio { font-weight: 600; color: #2c3e50; font-size: 0.88rem; }
+        .leaflet-popup-content .hundred-scorer .detail { color: #7f8c8d; font-size: 0.8rem; }
+        
+        /* Список олимпиад со скроллом */
+        .leaflet-popup-content ul.olympiad-list { 
+            list-style: none; padding-left: 0; margin: 4px 0 6px 0; 
+            max-height: 160px; overflow-y: auto; padding-right: 4px; 
         }
+        .leaflet-popup-content ul.olympiad-list::-webkit-scrollbar { width: 6px; }
+        .leaflet-popup-content ul.olympiad-list::-webkit-scrollbar-thumb { background: var(--green-soft); border-radius: 3px; }
+        .leaflet-popup-content ul.olympiad-list li { padding: 4px 0 4px 18px; position: relative; font-size: 0.82rem; border-bottom: 1px dashed var(--beige-dark); line-height: 1.3; }
+        .leaflet-popup-content ul.olympiad-list li:last-child { border-bottom: none; }
+        .leaflet-popup-content ul.olympiad-list li::before { content: "🏅"; position: absolute; left: 0; font-size: 0.75rem; top: 6px; }
+        .leaflet-popup-content .no-info { font-style: italic; color: #95a5a6; font-size: 0.85rem; padding: 4px 0 4px 18px; position: relative; }
+        .leaflet-popup-content .no-info::before { content: "—"; position: absolute; left: 2px; color: #bdc3c7; }
+        .leaflet-popup-content .badge-subject { display: inline-block; background: var(--green-light); color: var(--green-dark); padding: 1px 5px; border-radius: 10px; font-size: 0.68rem; font-weight: 600; margin-top: 2px; }
+        .leaflet-popup-content .school-note { font-size: 0.8rem; color: #16a085; font-style: italic; margin-top: 6px; padding: 6px 10px; background: #e8f8f5; border-radius: 6px; }
+        .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 4px 20px rgba(45, 80, 22, 0.25) !important; }
+
+        /* Переключатель слоев и прочее */
+        .tiles-switcher { position: absolute; top: 12px; right: 12px; z-index: 999; background: var(--white); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; font-size: 12px; }
+        .tiles-switcher button { display: block; width: 100%; padding: 8px 14px; background: var(--white); border: none; border-bottom: 1px solid var(--beige-dark); cursor: pointer; text-align: left; font-size: 12px; color: var(--green-dark); }
+        .tiles-switcher button:last-child { border-bottom: none; }
+        .tiles-switcher button:hover { background: var(--green-light); }
+        .tiles-switcher button.active { background: var(--green-mid); color: white; font-weight: 600; }
+        .sidebar-toggle { display: none; position: absolute; top: 12px; left: 12px; z-index: 1000; background: var(--white); border: none; border-radius: 10px; width: 44px; height: 44px; cursor: pointer; box-shadow: var(--shadow); font-size: 20px; color: var(--green-dark); align-items: center; justify-content: center; }
+        
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; top: 0; left: 0; height: 100%; width: 85%; max-width: 340px; transform: translateX(-100%); box-shadow: 4px 0 20px rgba(45, 80, 22, 0.2); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-toggle { display: flex; }
+            header h1 { font-size: 1.2rem; } header p { font-size: 0.72rem; }
+            .tiles-switcher { top: 68px; right: 12px; }
+            .leaflet-popup-content { min-width: 250px; max-width: 290px; font-size: 13px; }
+        }
+        .overlay { display: none; position: absolute; inset: 0; background: rgba(45, 80, 22, 0.4); z-index: 450; }
+        .overlay.show { display: block; }
     </style>
 </head>
 <body>
-    <header><h1>📚 Банк заданий</h1><p>Нажмите на документ, чтобы открыть его</p></header>
-    <div class="container">
-        <div class="file-list" id="fileList"></div>
+    <header><h1>🏫 Школы Дюртюлинского района</h1><p>Республика Башкортостан · г. Дюртюли и село Иванаево</p></header>
+    <div class="main">
+        <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+        <div class="overlay" id="overlay"></div>
+        <aside class="sidebar" id="sidebar">
+            <div class="search-box"><input type="text" id="searchInput" placeholder="Поиск школы..." autocomplete="off"></div>
+            <div class="school-list" id="schoolList"></div>
+        </aside>
+        <div id="map"></div>
+        <div class="tiles-switcher" id="tilesSwitcher">
+            <button data-layer="osm-humanitarian" class="active">🌿 OSM Humanit.</button>
+            <button data-layer="osm-de">🌍 OSM (Германия)</button>
+            <button data-layer="carto-light">🗺️ CartoDB Light</button>
+            <button data-layer="sputnik">🇷🇺 Спутник</button>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // ВАШИ ФАЙЛЫ (Добавляйте новые сюда)
+        // ДАННЫЕ О ШКОЛАХ
         // ============================================================
-        const files = [
-            { name: "Английский язык 10 кл.pdf", title: "Английский язык (10 класс)" },
-            { name: "Английский язык.pdf", title: "Английский язык" },
-            { name: "Биология 5-6 кл.pdf", title: "Биология (5-6 класс)" },
-            { name: "Биология и география 10-11 кл.pdf", title: "Биология и география (10-11 класс)" },
-            { name: "География 7-8 кл.pdf", title: "География (7-8 класс)" },
-            { name: "Геометрия 8 кл.pdf", title: "Геометрия (8 класс)" },
-            { name: "История 5 кл.pdf", title: "История (5 класс)" },
-            { name: "Родной язык 6 кл.pdf", title: "Родной язык (6 класс)" },
-            { name: "Родной язык 8 кл.pdf", title: "Родной язык (8 класс)" }
+        const schools = [
+            { 
+                name: "МБОУ СОШ №1 г. Дюртюли", 
+                address: "г. Дюртюли, ул. Р. Мусина, 80", 
+                coords: [55.483212, 54.870810], 
+                hundredScorers: null, 
+                olympiadWinners: [
+                    { fio: "Айсылу Ризванова", subject: "Изобразительное искусство", level: "региональный этап ВОШ (2022)" },
+                    { fio: "Команда школы", subject: "«Зарница 2.0»", level: "победители" }
+                ], 
+                note: null 
+            },
+            { 
+                name: "МБОУ СОШ №4 г. Дюртюли", 
+                address: "г. Дюртюли, ул. Первомайская, 23", 
+                coords: [55.494415, 54.851463], 
+                hundredScorers: null, 
+                olympiadWinners: [
+                    { fio: "Гильманов Давид, Закирьянов Ильяс", subject: "Уфимская предпрофессиональная олимпиада", level: "призёры" }
+                ], 
+                note: null 
+            },
+            { 
+                name: "МБОУ СОШ №5 г. Дюртюли", 
+                address: "г. Дюртюли, ул. Первомайская, 3", 
+                coords: [55.493141, 54.845574], 
+                hundredScorers: null, 
+                olympiadWinners: [
+                    { fio: "Динара Гиндуллина", subject: "Математика", level: "региональный этап ВОШ" },
+                    { fio: "Руслан Юнусов", subject: "Право", level: "республиканский этап ВОШ (2021)" }
+                ], 
+                note: "Самая крупная школа города по числу учеников · Машиностроительный класс" 
+            },
+            { 
+                name: "МБОУ Лицей №2 г. Дюртюли", 
+                address: "г. Дюртюли", 
+                coords: [55.484725, 54.866858], 
+                hundredScorers: null, 
+                olympiadWinners: [
+                    // Данные из документа (Заявка на слет 2026)
+                    { fio: "Давлетханова Амелия", subject: "Литература (Респ. этап ВОШ)", level: "Диплом призера" },
+                    { fio: "Зиляева Айлита", subject: "ИЗО (Респ. этап ВОШ)", level: "2 место" },
+                    { fio: "Мусина Ильвина", subject: "ИЗО (Респ. этап ВОШ)", level: "3 место" },
+                    { fio: "Мусабирова Альберт", subject: "Информатика/Робототехника (Респ. этап ВОШ)", level: "Диплом призера" },
+                    { fio: "Шайбеков Данияр", subject: "Физика (Олимпиада «УГНТУ 2025»)", level: "Диплом победителя" },
+                    { fio: "Мухаметьянова Лиана", subject: "Физика (Конференция «Инженеры будущего»)", level: "Диплом призера" },
+                    { fio: "Мусабиров Альберт", subject: "Инженерная олимпиада «Звезда»", level: "протоколы (рег. этап)" },
+                    { fio: "Аллаяров Булат", subject: "Олимпиада «Я помню, я горжусь»", level: "призер" },
+                    { fio: "Садрисламов Ильяс", subject: "Конкурс «Җанлы сүз / Живое слово»", level: "1 место" },
+                    { fio: "Садрисламов Ильяс", subject: "Всероссийский конкурс сочинений", level: "Победитель (респ. этап)" },
+                    { fio: "Садрисламов Ильяс", subject: "Всероссийский конкурс сочинений", level: "призер (закл. этап)" },
+                    { fio: "Набиуллин Нияз", subject: "Олимпиада по предпринимательству", level: "Победитель респ. и ПФО, финалист РФ" },
+                    { fio: "Мусабиров Альберт", subject: "Конкурс научно-исследовательских работ", level: "Призер (3 место)" },
+                    // Старые данные
+                    { fio: "Данияр Шайбеков и Артур Закариев", subject: "«Юные таланты России»", level: "абсолютные победители (2026, Уфа)" },
+                    { fio: "Айдар Мустафин", subject: "Математика", level: "региональный этап ВОШ" }
+                ], 
+                note: "«Лучшая школа Дюртюлинского района» по итогам 2021/22 учебного года" 
+            },
+            { 
+                name: "МБОУ Башкирская гимназия им. Н. Наджми", 
+                address: "г. Дюртюли, ул. Ленина, 19", 
+                coords: [55.488679, 54.848532], 
+                hundredScorers: [
+                    { fio: "Эмиль Махмутов", subject: "Физика + профильная математика", year: 2026, detail: "200 баллов — один из четырёх двухсотбалльников Башкортостана" },
+                    { fio: "Исхаков Камил", subject: "Физика (100) + математика (90)", year: null, detail: null }
+                ], 
+                olympiadWinners: [
+                    { fio: "Ученики гимназии", subject: "«Мустаевское чтение»", level: "Гран-при" },
+                    { fio: "Ученики гимназии", subject: "«Урал-батыр»", level: "победители республиканского конкурса чтецов" }
+                ], 
+                note: "Выпускник 2026 года вошёл в число 9 мультибалльников республики по итогам ЕГЭ" 
+            },
+            { 
+                name: "МБОУ Гимназия №3 г. Дюртюли", 
+                address: "г. Дюртюли, ул. Первомайская, 54 · тел. 8 (34787) 2-25-50", 
+                coords: [55.492158, 54.850073], 
+                hundredScorers: [
+                    { fio: "Ангелина Насырова, Данил Хафизов, Эльвина Рахматуллина", subject: "Химия", year: 2026, detail: "100 баллов (+ два выпускника с 99 баллами)" },
+                    { fio: "Ирина Елисова, Глеб Фарафонов, Галия Нагимуллина", subject: "Химия", year: 2024, detail: "100 баллов" },
+                    { fio: "Алсу Ахметзянова", subject: "Химия + русский язык", year: 2022, detail: "200 баллов" },
+                    { fio: "Ильназ Сайфуллин", subject: "Химия", year: 2021, detail: "Первый стобалльник ЕГЭ-2021 в Башкортостане" }
+                ], 
+                olympiadWinners: [
+                    { fio: "Глеб Фарафонов", subject: "Химия", level: "призёр заключительного этапа ВОШ (2024)" },
+                    { fio: "Газинур Галиев", subject: "Право", level: "региональный этап ВОШ" },
+                    { fio: "Команда гимназии", subject: "Межрегиональный химический турнир", level: "1 место · региональный этап (2022)" },
+                    { fio: "Азалина Файзерахманова", subject: "Татарский язык и литература", level: "республиканская олимпиада (2021)" }
+                ], 
+                note: "Главный «стобалльный центр» района · Учитель химии — Юлия Петровна Устюжанина" 
+            },
+            { 
+                name: "МБОУ СОШ с. Иванаево", 
+                address: "Дюртюлинский район, с. Иванаево", 
+                coords: [55.491106, 54.831906], 
+                hundredScorers: null, 
+                olympiadWinners: [
+                    { fio: "Аделина Гадельшина", subject: "Родные языки (XXX Республиканская олимпиада)", level: "призёр (11 класс, 2022)" },
+                    { fio: "Аделина Гадельшина", subject: "Татарская литература (олимпиада в Казани)", level: "призёр" },
+                    { fio: "Ученица 9 класса", subject: "Татарский язык и литература", level: "призёр республиканской олимпиады" },
+                    { fio: "2 победителя", subject: "Кубок им. Ю. А. Гагарина", level: "муниципальный этап (2022)" }
+                ], 
+                note: "Сильная традиция по татарскому языку и литературе · Учитель Зульфия Ахметова готовит призёров много лет" 
+            }
         ];
 
-        const listEl = document.getElementById('fileList');
-        if (files.length === 0) {
-            listEl.innerHTML = '<p style="text-align:center; color:#888;">Файлы пока не добавлены.</p>';
-        } else {
-            files.forEach(file => {
-                const a = document.createElement('a');
-                a.href = encodeURIComponent(file.name);
-                a.target = "_blank";
-                a.className = 'file-card';
-                a.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-icon">📄</div>
-                        <div class="file-text">
-                            <h2>${file.title}</h2>
-                            <p>PDF документ</p>
-                        </div>
-                    </div>
-                    <div class="file-arrow">➔</div>
-                `;
-                listEl.appendChild(a);
+        const map = L.map('map', { center: [55.488, 54.855], zoom: 13 });
+        const tileLayers = {
+            'osm-humanitarian': L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: ['a','b','c'] }),
+            'osm-de': L.tileLayer('https://tile.openstreetmap.de/{z}/{x}/{y}.png', { maxZoom: 19 }),
+            'carto-light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { maxZoom: 19, subdomains: ['a','b','c','d'] }),
+            'sputnik': L.tileLayer('https://tiles.maps.sputnik.ru/{z}/{x}/{y}.png', { maxZoom: 17 })
+        };
+        let activeLayerKey = 'osm-humanitarian';
+        tileLayers[activeLayerKey].addTo(map);
+        document.getElementById('tilesSwitcher').addEventListener('click', (e) => {
+            const btn = e.target.closest('button'); if (!btn) return;
+            const key = btn.dataset.layer; if (key === activeLayerKey) return;
+            map.removeLayer(tileLayers[activeLayerKey]); activeLayerKey = key; tileLayers[activeLayerKey].addTo(map);
+            document.querySelectorAll('#tilesSwitcher button').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+        });
+
+        function createPopupContent(s) {
+            let h = `<h3>${s.name}</h3><div class="school-address">📍 ${s.address}</div>`;
+            h += `<div class="section-label">🎓 Стобалльники ЕГЭ</div>`;
+            if (s.hundredScorers && s.hundredScorers.length) {
+                s.hundredScorers.forEach(hs => {
+                    h += `<div class="hundred-scorer"><div class="fio">${hs.fio}</div><div class="detail">${hs.subject} ${hs.year ? '· '+hs.year : ''} ${hs.detail ? '· '+hs.detail : ''}</div></div>`;
+                });
+            } else h += `<div class="no-info">Информация уточняется</div>`;
+            
+            h += `<div class="section-label">🏆 Олимпиады и конкурсы (${s.olympiadWinners ? s.olympiadWinners.length : 0})</div>`;
+            if (s.olympiadWinners && s.olympiadWinners.length) {
+                h += `<ul class="olympiad-list">${s.olympiadWinners.map(w => `<li>${w.fio} — ${w.subject} <br><span class="badge-subject">${w.level}</span></li>`).join('')}</ul>`;
+            } else h += `<div class="no-info">Информация уточняется</div>`;
+            
+            if (s.note) h += `<div class="school-note">💡 ${s.note}</div>`;
+            return h;
+        }
+
+        const markers = [];
+        schools.forEach((s, idx) => {
+            const icon = L.divIcon({ className: 'custom-marker-wrapper', html: '<div class="custom-marker"><span>🏫</span></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
+            const marker = L.marker(s.coords, { icon }).addTo(map);
+            marker.bindPopup(createPopupContent(s), { maxWidth: 340, minWidth: 280 });
+            markers.push({ marker, school: s, index: idx });
+        });
+
+        const schoolListEl = document.getElementById('schoolList');
+        const searchInput = document.getElementById('searchInput');
+        let activeIndex = -1;
+
+        function renderList(query = '') {
+            const q = query.trim().toLowerCase();
+            const filtered = schools.map((s, i) => ({ school: s, index: i })).filter(({ school }) => !q || school.name.toLowerCase().includes(q) || school.address.toLowerCase().includes(q));
+            schoolListEl.innerHTML = filtered.length ? '' : '<div class="no-results">🔍 Ничего не найдено</div>';
+            filtered.forEach(({ school, index }) => {
+                const hasH = school.hundredScorers && school.hundredScorers.length > 0;
+                const oCount = school.olympiadWinners ? school.olympiadWinners.length : 0;
+                const item = document.createElement('div');
+                item.className = 'school-item' + (index === activeIndex ? ' active' : '');
+                item.dataset.index = index;
+                item.innerHTML = `<div class="item-name">${school.name}</div><div class="item-address">📍 ${school.address}</div><div class="item-badges">${hasH ? '<span class="badge badge-hundred">🎓 Стобалльники</span>' : ''}${oCount > 0 ? `<span class="badge badge-olymp">🏆 Олимпиады (${oCount})</span>` : ''}</div>`;
+                item.addEventListener('click', () => selectSchool(index, true));
+                schoolListEl.appendChild(item);
             });
         }
+
+        function selectSchool(index, openPopup) {
+            const entry = markers[index]; if (!entry) return;
+            activeIndex = index;
+            document.querySelectorAll('.school-item').forEach(el => el.classList.toggle('active', parseInt(el.dataset.index) === index));
+            map.flyTo(entry.school.coords, 15, { duration: 0.8 });
+            if (openPopup) setTimeout(() => { entry.marker.openPopup(); entry.marker.setZIndexOffset(1000); }, 850);
+            if (window.innerWidth <= 768) closeSidebar();
+        }
+
+        renderList();
+        searchInput.addEventListener('input', (e) => renderList(e.target.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { const f = schoolListEl.querySelector('.school-item'); if (f) f.click(); }
+            if (e.key === 'Escape') { searchInput.value = ''; renderList(); searchInput.blur(); }
+        });
+
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const toggle = document.getElementById('sidebarToggle');
+        function openSidebar() { sidebar.classList.add('open'); overlay.classList.add('show'); }
+        function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+        toggle.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+        overlay.addEventListener('click', closeSidebar);
+        window.addEventListener('resize', () => map.invalidateSize());
+        setTimeout(() => map.invalidateSize(), 300);
     </script>
 </body>
 </html>
